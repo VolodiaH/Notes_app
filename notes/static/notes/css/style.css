@@ -61,3 +61,30 @@ h2 { margin: 0; font-size: 18px; }
     .intro { margin-bottom: 32px; }
     .notes-grid { grid-template-columns: 1fr; }
 }
+
+/* Forms and note actions */
+a { color: #356343; text-underline-offset: 3px; }
+button, input, select, textarea { font: inherit; }
+button, .button { display: inline-block; padding: 11px 18px; border: 1px solid #356343; border-radius: 8px; background: #356343; color: #fff; text-decoration: none; cursor: pointer; }
+button:hover, .button:hover { background: #294e34; }
+:focus-visible { outline: 3px solid #678a42; outline-offset: 3px; }
+.editor, .filters { padding: 24px; border: 1px solid #dce2d9; border-radius: 16px; background: #fff; }
+.editor { max-width: 720px; }
+.field { min-width: 0; margin-bottom: 18px; }
+.field label { display: block; margin-bottom: 8px; font-weight: 600; }
+.field input, .field select, .field textarea { width: 100%; min-width: 0; padding: 10px; border: 1px solid #9ba99e; border-radius: 6px; background: #fff; color: #24352d; }
+.field textarea { resize: vertical; }
+.helptext { color: #59665d; font-size: 13px; line-height: 1.5; }
+.errorlist { color: #a32222; padding-left: 20px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin-bottom: 32px; }
+.filters > .helptext, .filters > .actions, .filters > .errorlist { grid-column: 1 / -1; }
+.delete-panel { max-width: 720px; margin-top: 28px; padding: 20px; border: 1px solid #dcbcbc; border-radius: 12px; overflow-wrap: anywhere; }
+.delete-panel summary { cursor: pointer; color: #a32222; font-weight: 600; }
+.danger { background: #a32222; border-color: #a32222; }
+.danger:hover { background: #801b1b; }
+@media (max-width: 600px) {
+    .filters { grid-template-columns: 1fr; }
+    .site-header { flex-wrap: wrap; }
+    .editor, .filters { padding: 18px; }
+}

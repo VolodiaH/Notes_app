@@ -1,22 +1,26 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мої нотатки</title>
-    <link rel="stylesheet" href="{% static 'notes/css/style.css' %}">
-</head>
-<body>
-    <header class="site-header">
-        <a class="brand" href="{% url 'notes:index' %}">Нотатник<span aria-hidden="true">.</span></a>
-    </header>
-    <main class="container">
+{% extends 'notes/base.html' %}
+{% block content %}
+
         <section class="intro" aria-labelledby="page-title">
             <p class="eyebrow">Ваш простір для думок</p>
             <h1 id="page-title">Мої нотатки</h1>
             <p class="subtitle">Плани, ідеї та важливі дрібниці — в одному місці.</p>
         </section>
+        <form method="get" class="filters" aria-label="Пошук і фільтри">
+            {{ filters.non_field_errors }}
+            {% for field in filters %}
+                <div class="field">
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {{ field.errors }}
+                </div>
+            {% endfor %}
+            <p class="helptext">Час нагадувань за Києвом. Межі періоду включно.</p>
+            <div class="actions">
+                <button type="submit">Знайти</button>
+                <a href="{% url 'notes:index' %}">Скинути фільтри</a>
+            </div>
+        </form>
         <section aria-labelledby="notes-title">
             <div class="section-heading">
                 <h2 id="notes-title">Усі нотатки</h2>
@@ -26,7 +30,7 @@
                 {% for note in notes %}
                     <article class="note-card">
                         <span class="category">{{ note.category.title }}</span>
-                        <h3>{{ note.title }}</h3>
+                        <h3><a href="{% url 'notes:detail' note.pk %}">{{ note.title }}</a></h3>
                         <div class="note-content">{{ note.text|linebreaksbr }}</div>
                         <footer class="note-footer">
                             {% if note.reminder %}
@@ -38,10 +42,8 @@
                         </footer>
                     </article>
                 {% empty %}
-                    <p class="empty-state">Нотаток поки немає. Тут з’являться ваші записи.</p>
+                    <p class="empty-state">{% if filters.errors %}Виправте помилки у фільтрах.{% elif request.GET %}За вашим запитом нотаток не знайдено.{% else %}Нотаток поки немає. Створіть першу нотатку.{% endif %}</p>
                 {% endfor %}
             </div>
         </section>
-    </main>
-</body>
-</html>
+    {% endblock %}

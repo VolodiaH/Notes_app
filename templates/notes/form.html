@@ -1,0 +1,32 @@
+{% extends 'notes/base.html' %}
+{% block title %}{% if note %}Деталі нотатки{% else %}Створити нотатку{% endif %} — Нотатник{% endblock %}
+{% block content %}
+    <a href="{% url 'notes:index' %}">← Усі нотатки</a>
+    <h1>{% if note %}Деталі нотатки{% else %}Нова нотатка{% endif %}</h1>
+    <form method="post" class="editor">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            <div class="field">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}<p class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}
+                {{ field.errors }}
+            </div>
+        {% endfor %}
+        <div class="actions">
+            <button type="submit">{% if note %}Зберегти зміни{% else %}Створити нотатку{% endif %}</button>
+            <a href="{% url 'notes:index' %}">Скасувати</a>
+        </div>
+    </form>
+    {% if note %}
+        <details class="delete-panel">
+            <summary>Видалити нотатку</summary>
+            <p>Видалити «{{ note.title }}»? Цю дію неможливо скасувати.</p>
+            <form method="post" action="{% url 'notes:delete' note.pk %}">
+                {% csrf_token %}
+                <button class="danger" type="submit">Підтвердити видалення</button>
+            </form>
+        </details>
+    {% endif %}
+{% endblock %}

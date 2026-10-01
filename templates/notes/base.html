@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Мої нотатки{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'notes/css/style.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{% url 'notes:index' %}">Нотатник<span aria-hidden="true">.</span></a>
+        <a class="button" href="{% url 'notes:create' %}">Створити нотатку</a>
+    </header>
+    <main class="container">{% block content %}{% endblock %}</main>
+</body>
+</html>
