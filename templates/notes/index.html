@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мої нотатки</title>
+    <link rel="stylesheet" href="{% static 'notes/css/style.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{% url 'notes:index' %}">Нотатник<span aria-hidden="true">.</span></a>
+        <span class="demo-label">Тестові дані</span>
+    </header>
+    <main class="container">
+        <section class="intro" aria-labelledby="page-title">
+            <p class="eyebrow">Ваш простір для думок</p>
+            <h1 id="page-title">Мої нотатки</h1>
+            <p class="subtitle">Плани, ідеї та важливі дрібниці — в одному місці.</p>
+        </section>
+        <section aria-labelledby="notes-title">
+            <div class="section-heading">
+                <h2 id="notes-title">Усі нотатки</h2>
+                <span class="note-count" aria-label="Кількість нотаток">{{ notes|length }}</span>
+            </div>
+            <div class="notes-grid">
+                {% for note in notes %}
+                    <article class="note-card">
+                        <span class="category">{{ note.category }}</span>
+                        <h3>{{ note.title }}</h3>
+                        <div class="note-content">{{ note.content|linebreaksbr }}</div>
+                        <footer class="note-footer">
+                            <span>Створено</span>
+                            <time datetime="{{ note.created_at|date:'Y-m-d' }}">{{ note.created_at|date:'d.m.Y' }}</time>
+                        </footer>
+                    </article>
+                {% empty %}
+                    <p class="empty-state">Нотаток поки немає. Тут з’являться ваші записи.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+</body>
+</html>
