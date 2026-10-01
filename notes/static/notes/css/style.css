@@ -62,7 +62,6 @@ h2 { margin: 0; font-size: 18px; }
     .notes-grid { grid-template-columns: 1fr; }
 }
 
-/* Forms and note actions */
 a { color: #356343; text-underline-offset: 3px; }
 button, input, select, textarea { font: inherit; }
 button, .button { display: inline-block; padding: 11px 18px; border: 1px solid #356343; border-radius: 8px; background: #356343; color: #fff; text-decoration: none; cursor: pointer; }

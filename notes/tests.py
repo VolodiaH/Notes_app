@@ -127,7 +127,6 @@ class NoteWorkflowTests(TestCase):
 
 
 class NoteFormUnitTests(TestCase):
-    """Test form validation and persistence directly, without HTTP requests."""
 
     @classmethod
     def setUpTestData(cls):
@@ -219,7 +218,6 @@ class NoteFormUnitTests(TestCase):
 
 
 class NoteHTTPIntegrationTests(TestCase):
-    """Exercise the existing HTML/form HTTP endpoints using the test client."""
 
     @classmethod
     def setUpTestData(cls):

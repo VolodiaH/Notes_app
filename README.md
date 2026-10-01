@@ -83,10 +83,8 @@ brew install postgresql@17
 ## Тести збереження та редагування
 
 ```sh
-# Прямі тести форми: створення, зміна, валідація та save(commit=False)
 .venv/bin/python manage.py test notes.tests.NoteFormUnitTests --noinput
 
-# Інтеграційні HTTP-тести з клієнтом і ввімкненим CSRF-захистом
 .venv/bin/python manage.py test notes.tests.NoteHTTPIntegrationTests --noinput
 ```
 
