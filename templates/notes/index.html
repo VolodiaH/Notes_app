@@ -10,7 +10,6 @@
 <body>
     <header class="site-header">
         <a class="brand" href="{% url 'notes:index' %}">Нотатник<span aria-hidden="true">.</span></a>
-        <span class="demo-label">Тестові дані</span>
     </header>
     <main class="container">
         <section class="intro" aria-labelledby="page-title">
@@ -26,12 +25,16 @@
             <div class="notes-grid">
                 {% for note in notes %}
                     <article class="note-card">
-                        <span class="category">{{ note.category }}</span>
+                        <span class="category">{{ note.category.title }}</span>
                         <h3>{{ note.title }}</h3>
-                        <div class="note-content">{{ note.content|linebreaksbr }}</div>
+                        <div class="note-content">{{ note.text|linebreaksbr }}</div>
                         <footer class="note-footer">
-                            <span>Створено</span>
-                            <time datetime="{{ note.created_at|date:'Y-m-d' }}">{{ note.created_at|date:'d.m.Y' }}</time>
+                            {% if note.reminder %}
+                                <span>Нагадування</span>
+                                <time datetime="{{ note.reminder|date:'c' }}">{{ note.reminder|date:'d.m.Y H:i' }}</time>
+                            {% else %}
+                                <span>Без нагадування</span>
+                            {% endif %}
                         </footer>
                     </article>
                 {% empty %}
