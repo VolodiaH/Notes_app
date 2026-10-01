@@ -10,7 +10,17 @@ class ReminderInput(forms.DateTimeInput):
         super().__init__(format='%Y-%m-%dT%H:%M', **kwargs)
 
 
-class NoteForm(forms.ModelForm):
+class BootstrapFormMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            css_class = 'form-select' if isinstance(field.widget, forms.Select) else 'form-control'
+            if self.is_bound and name in self.errors:
+                css_class += ' is-invalid'
+            field.widget.attrs['class'] = css_class
+
+
+class NoteForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Note
         fields = ['title', 'text', 'reminder', 'category']
@@ -22,7 +32,7 @@ class NoteForm(forms.ModelForm):
         help_texts = {'reminder': 'Необов’язково. Час за Києвом.'}
 
 
-class NoteFilterForm(forms.Form):
+class NoteFilterForm(BootstrapFormMixin, forms.Form):
     q = forms.CharField(label='Пошук за назвою', required=False, max_length=200)
     category = forms.ModelChoiceField(
         label='Категорія', queryset=Category.objects.order_by('title'),

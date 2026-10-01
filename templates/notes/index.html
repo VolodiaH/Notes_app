@@ -1,49 +1,56 @@
 {% extends 'notes/base.html' %}
 {% block content %}
-
-        <section class="intro" aria-labelledby="page-title">
-            <p class="eyebrow">Ваш простір для думок</p>
-            <h1 id="page-title">Мої нотатки</h1>
-            <p class="subtitle">Плани, ідеї та важливі дрібниці — в одному місці.</p>
-        </section>
-        <form method="get" class="filters" aria-label="Пошук і фільтри">
-            {{ filters.non_field_errors }}
-            {% for field in filters %}
-                <div class="field">
-                    {{ field.label_tag }}
-                    {{ field }}
-                    {{ field.errors }}
-                </div>
-            {% endfor %}
-            <p class="helptext">Час нагадувань за Києвом. Межі періоду включно.</p>
-            <div class="actions">
-                <button type="submit">Знайти</button>
-                <a href="{% url 'notes:index' %}">Скинути фільтри</a>
+    <section class="mb-4 mb-md-5" aria-labelledby="page-title">
+        <p class="text-success fw-semibold small text-uppercase mb-2">Ваш простір для думок</p>
+        <h1 id="page-title" class="display-5 fw-bold">Мої нотатки</h1>
+        <p class="lead text-body-secondary">Плани, ідеї та важливі дрібниці — в одному місці.</p>
+    </section>
+    <form method="get" class="card border-0 shadow-sm rounded-4 mb-5" aria-label="Пошук і фільтри">
+        <div class="card-body p-4">
+            {% if filters.non_field_errors %}<div class="alert alert-danger" role="alert">{{ filters.non_field_errors }}</div>{% endif %}
+            <div class="row g-3">
+                {% for field in filters %}
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="invalid-feedback d-block" id="{{ field.auto_id }}_error">{{ field.errors }}</div>{% endif %}
+                    </div>
+                {% endfor %}
             </div>
-        </form>
-        <section aria-labelledby="notes-title">
-            <div class="section-heading">
-                <h2 id="notes-title">Усі нотатки</h2>
-                <span class="note-count" aria-label="Кількість нотаток">{{ notes|length }}</span>
+            <p class="form-text mt-3">Час нагадувань за Києвом. Межі періоду включно.</p>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-success" type="submit">Знайти</button>
+                <a class="btn btn-outline-secondary" href="{% url 'notes:index' %}">Скинути фільтри</a>
             </div>
-            <div class="notes-grid">
-                {% for note in notes %}
-                    <article class="note-card">
-                        <span class="category">{{ note.category.title }}</span>
-                        <h3><a href="{% url 'notes:detail' note.pk %}">{{ note.title }}</a></h3>
-                        <div class="note-content">{{ note.text|linebreaksbr }}</div>
-                        <footer class="note-footer">
+        </div>
+    </form>
+    <section aria-labelledby="notes-title">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <h2 id="notes-title" class="h5 mb-0">Усі нотатки</h2>
+            <span class="badge rounded-pill text-bg-success" aria-label="Кількість нотаток">{{ notes|length }}</span>
+        </div>
+        <div class="row g-4">
+            {% for note in notes %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <article class="card h-100 border-0 shadow-sm rounded-4 note-card">
+                        <div class="card-body p-4">
+                            <span class="badge text-success-emphasis bg-success-subtle mb-3">{{ note.category.title }}</span>
+                            <h3 class="h5 card-title"><a class="note-link" href="{% url 'notes:detail' note.pk %}">{{ note.title }}</a></h3>
+                            <div class="card-text text-body-secondary mt-3">{{ note.text|linebreaksbr }}</div>
+                        </div>
+                        <footer class="card-footer bg-transparent border-top mx-4 px-0 py-3 small text-body-secondary d-flex flex-wrap justify-content-between gap-2">
                             {% if note.reminder %}
                                 <span>Нагадування</span>
                                 <time datetime="{{ note.reminder|date:'c' }}">{{ note.reminder|date:'d.m.Y H:i' }}</time>
-                            {% else %}
-                                <span>Без нагадування</span>
-                            {% endif %}
+                            {% else %}<span>Без нагадування</span>{% endif %}
                         </footer>
                     </article>
-                {% empty %}
-                    <p class="empty-state">{% if filters.errors %}Виправте помилки у фільтрах.{% elif request.GET %}За вашим запитом нотаток не знайдено.{% else %}Нотаток поки немає. Створіть першу нотатку.{% endif %}</p>
-                {% endfor %}
-            </div>
-        </section>
-    {% endblock %}
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <p class="alert alert-light border rounded-4 text-center py-5">{% if filters.errors %}Виправте помилки у фільтрах.{% elif request.GET %}За вашим запитом нотаток не знайдено.{% else %}Нотаток поки немає. Створіть першу нотатку.{% endif %}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endblock %}

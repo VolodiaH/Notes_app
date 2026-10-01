@@ -5,13 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Мої нотатки{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'notes/css/style.css' %}">
 </head>
 <body>
-    <header class="site-header">
-        <a class="brand" href="{% url 'notes:index' %}">Нотатник<span aria-hidden="true">.</span></a>
-        <a class="button" href="{% url 'notes:create' %}">Створити нотатку</a>
-    </header>
-    <main class="container">{% block content %}{% endblock %}</main>
+    <nav class="navbar bg-white border-bottom py-3" aria-label="Основна навігація">
+        <div class="container gap-3">
+            <a class="navbar-brand fw-bold" href="{% url 'notes:index' %}">Нотатник<span class="text-success">.</span></a>
+            <div class="nav gap-2 flex-wrap">
+                <a class="nav-link {% if request.resolver_match.url_name == 'index' %}active fw-bold{% endif %}" {% if request.resolver_match.url_name == 'index' %}aria-current="page"{% endif %} href="{% url 'notes:index' %}">Головна</a>
+                <a class="btn btn-success {% if request.resolver_match.url_name == 'create' %}active{% endif %}" {% if request.resolver_match.url_name == 'create' %}aria-current="page"{% endif %} href="{% url 'notes:create' %}">Створити нотатку</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-4 py-md-5">{% block content %}{% endblock %}</main>
 </body>
 </html>
