@@ -5,7 +5,12 @@
         <h1 id="page-title" class="display-5 fw-bold">Мої нотатки</h1>
         <p class="lead text-body-secondary">Плани, ідеї та важливі дрібниці — в одному місці.</p>
     </section>
+    <nav class="nav nav-pills gap-2 mb-4" aria-label="Тип нотаток">
+        <a class="nav-link {% if scope == 'personal' %}active{% endif %}" href="?scope=personal">Персональні</a>
+        <a class="nav-link {% if scope == 'group' %}active{% endif %}" href="?scope=group">Нотатки групи</a>
+    </nav>
     <form method="get" class="card border-0 shadow-sm rounded-4 mb-5" aria-label="Пошук і фільтри">
+        <input type="hidden" name="scope" value="{{ scope }}">
         <div class="card-body p-4">
             {% if filters.non_field_errors %}<div class="alert alert-danger" role="alert">{{ filters.non_field_errors }}</div>{% endif %}
             <div class="row g-3">
@@ -20,7 +25,7 @@
             <p class="form-text mt-3">Час нагадувань за Києвом. Межі періоду включно.</p>
             <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-success" type="submit">Знайти</button>
-                <a class="btn btn-outline-secondary" href="{% url 'notes:index' %}">Скинути фільтри</a>
+                <a class="btn btn-outline-secondary" href="{% url 'notes:index' %}?scope={{ scope }}">Скинути фільтри</a>
             </div>
         </div>
     </form>
@@ -35,6 +40,7 @@
                     <article class="card h-100 border-0 shadow-sm rounded-4 note-card">
                         <div class="card-body p-4">
                             <span class="badge text-success-emphasis bg-success-subtle mb-3">{{ note.category.title }}</span>
+                            {% if note.group %}<p class="small text-body-secondary">{{ note.group.name }} · {{ note.owner.username }}</p>{% endif %}
                             <h3 class="h5 card-title"><a class="note-link" href="{% url 'notes:detail' note.pk %}">{{ note.title }}</a></h3>
                             <div class="card-text text-body-secondary mt-3">{{ note.text|linebreaksbr }}</div>
                         </div>

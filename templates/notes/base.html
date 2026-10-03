@@ -14,7 +14,15 @@
             <a class="navbar-brand fw-bold" href="{% url 'notes:index' %}">Нотатник<span class="text-success">.</span></a>
             <div class="nav gap-2 flex-wrap">
                 <a class="nav-link {% if request.resolver_match.url_name == 'index' %}active fw-bold{% endif %}" {% if request.resolver_match.url_name == 'index' %}aria-current="page"{% endif %} href="{% url 'notes:index' %}">Головна</a>
+                {% if user.is_authenticated %}
                 <a class="btn btn-success {% if request.resolver_match.url_name == 'create' %}active{% endif %}" {% if request.resolver_match.url_name == 'create' %}aria-current="page"{% endif %} href="{% url 'notes:create' %}">Створити нотатку</a>
+                <span class="navbar-text">{{ user.username }}</span>
+                {% if user.is_staff %}<a class="nav-link" href="{% url 'admin:index' %}">Адмінка</a>{% endif %}
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-secondary" type="submit">Log out</button>
+                </form>
+                {% else %}<a class="btn btn-success" href="{% url 'login' %}">Увійти</a>{% endif %}
             </div>
         </div>
     </nav>

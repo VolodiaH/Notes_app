@@ -1,0 +1,14 @@
+{% extends 'notes/base.html' %}
+{% block title %}{{ note.title }} — Нотатник{% endblock %}
+{% block content %}
+<div class="editor mx-auto">
+    <a class="link-success" href="{% url 'notes:index' %}?scope=group">← Нотатки групи</a>
+    <article class="card border-0 shadow-sm rounded-4 p-4 mt-3">
+        <p class="text-body-secondary">{{ note.group.name }} · {{ note.owner.username }}</p>
+        <h1>{{ note.title }}</h1>
+        <p class="badge bg-success-subtle text-success-emphasis align-self-start">{{ note.category.title }}</p>
+        <div>{{ note.text|linebreaksbr }}</div>
+        <p class="mt-4 mb-0 text-body-secondary">{% if note.reminder %}Нагадування: {{ note.reminder|date:'d.m.Y H:i' }}{% else %}Без нагадування{% endif %}</p>
+    </article>
+</div>
+{% endblock %}

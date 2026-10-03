@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from django.contrib.auth import get_user_model
 from django.db.models.deletion import ProtectedError
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -8,7 +9,18 @@ from .forms import NoteForm
 from .models import Category, Note
 
 
-class NotesTests(TestCase):
+class AuthenticatedTestCase(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = get_user_model().objects.create_user(username='test_author', password='TestPassword-456!')
+        self.client.force_login(self.user)
+
+
+class NotesTests(AuthenticatedTestCase):
+    def setUp(self):
+        super().setUp()
+        Note.objects.all().update(owner=self.user)
+
     def test_sample_data_migration(self):
         self.assertEqual(Category.objects.count(), 3)
         self.assertEqual(Note.objects.count(), 3)
@@ -16,13 +28,13 @@ class NotesTests(TestCase):
 
     def test_homepage_reads_database_with_categories(self):
         category = Category.objects.create(title='Робота')
-        Note.objects.create(
+        Note.objects.create(owner=self.user,
             title='Нова нотатка з бази',
             text='Перший рядок\nДругий рядок <script>alert(1)</script>',
             reminder=datetime(2026, 10, 5, 9, 0, tzinfo=timezone.utc),
             category=category,
         )
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(4):
             response = self.client.get(reverse('notes:index'))
         self.assertContains(response, 'Нова нотатка з бази')
         self.assertContains(response, 'Робота')
@@ -42,12 +54,13 @@ class NotesTests(TestCase):
             note.category.delete()
 
 
-class NoteWorkflowTests(TestCase):
+class NoteWorkflowTests(AuthenticatedTestCase):
     def setUp(self):
+        super().setUp()
         Note.objects.all().delete()
         self.category = Category.objects.first()
         self.other_category = Category.objects.exclude(pk=self.category.pk).first()
-        self.note = Note.objects.create(
+        self.note = Note.objects.create(owner=self.user,
             title='Weekly plan', text='Original text', category=self.category,
             reminder=datetime(2026, 10, 5, 9, 0, tzinfo=timezone.utc),
         )
@@ -101,7 +114,7 @@ class NoteWorkflowTests(TestCase):
         self.assertEqual(self.client.post(reverse('notes:delete', args=[999999])).status_code, 404)
 
     def test_search_and_filters_individually_and_combined(self):
-        other = Note.objects.create(title='Other note', text='Weekly plan', category=self.other_category)
+        other = Note.objects.create(owner=self.user, title='Other note', text='Weekly plan', category=self.other_category)
         cases = [
             ({'q': 'wEeKlY'}, [self.note]),
             ({'category': self.other_category.pk}, [other]),
@@ -126,7 +139,7 @@ class NoteWorkflowTests(TestCase):
             self.assertContains(response, 'Виправте помилки у фільтрах.')
 
 
-class NoteFormUnitTests(TestCase):
+class NoteFormUnitTests(AuthenticatedTestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -134,13 +147,14 @@ class NoteFormUnitTests(TestCase):
         cls.other_category = Category.objects.create(title='Unit: updated')
 
     def setUp(self):
+        super().setUp()
         self.payload = {
             'title': 'Нова нотатка', 'text': 'Перший рядок\nДругий рядок',
             'reminder': '2026-10-06T12:30', 'category': self.category.pk,
         }
 
     def make_note(self):
-        return Note.objects.create(
+        return Note.objects.create(owner=self.user,
             title='Початкова назва', text='Початковий текст',
             reminder=datetime(2026, 10, 5, 9, tzinfo=timezone.utc),
             category=self.category,
@@ -148,7 +162,7 @@ class NoteFormUnitTests(TestCase):
 
     def test_save_creates_note_with_all_fields(self):
         count = Note.objects.count()
-        form = NoteForm(data=self.payload)
+        form = NoteForm(user=self.user, data=self.payload)
         self.assertTrue(form.is_valid(), form.errors)
         note = form.save()
         note.refresh_from_db()
@@ -159,7 +173,7 @@ class NoteFormUnitTests(TestCase):
         self.assertEqual(note.reminder, datetime(2026, 10, 6, 9, 30, tzinfo=timezone.utc))
 
     def test_save_without_optional_reminder(self):
-        form = NoteForm(data={**self.payload, 'reminder': ''})
+        form = NoteForm(user=self.user, data={**self.payload, 'reminder': ''})
         self.assertTrue(form.is_valid(), form.errors)
         note = form.save()
         note.refresh_from_db()
@@ -168,7 +182,7 @@ class NoteFormUnitTests(TestCase):
     def test_update_preserves_identity_and_changes_all_fields(self):
         note = self.make_note()
         original_pk, count = note.pk, Note.objects.count()
-        form = NoteForm(data={**self.payload, 'category': self.other_category.pk}, instance=note)
+        form = NoteForm(user=self.user, data={**self.payload, 'category': self.other_category.pk}, instance=note)
         self.assertTrue(form.is_valid(), form.errors)
         updated = form.save()
         updated.refresh_from_db()
@@ -181,7 +195,7 @@ class NoteFormUnitTests(TestCase):
 
     def test_update_can_clear_reminder(self):
         note = self.make_note()
-        form = NoteForm(data={**self.payload, 'reminder': ''}, instance=note)
+        form = NoteForm(user=self.user, data={**self.payload, 'reminder': ''}, instance=note)
         self.assertTrue(form.is_valid(), form.errors)
         form.save()
         note.refresh_from_db()
@@ -189,7 +203,7 @@ class NoteFormUnitTests(TestCase):
 
     def test_commit_false_does_not_write_until_explicit_save(self):
         count = Note.objects.count()
-        form = NoteForm(data=self.payload)
+        form = NoteForm(user=self.user, data=self.payload)
         self.assertTrue(form.is_valid(), form.errors)
         note = form.save(commit=False)
         self.assertIsNone(note.pk)
@@ -208,7 +222,7 @@ class NoteFormUnitTests(TestCase):
             for instance in (None, note):
                 with self.subTest(field=field, value=value, update=instance is not None):
                     before = list(Note.objects.order_by('pk').values())
-                    form = NoteForm(data={**self.payload, field: value}, instance=instance)
+                    form = NoteForm(user=self.user, data={**self.payload, field: value}, instance=instance)
                     self.assertFalse(form.is_valid())
                     self.assertIn(field, form.errors)
                     with self.assertRaises(ValueError):
@@ -217,7 +231,7 @@ class NoteFormUnitTests(TestCase):
                     note.refresh_from_db()
 
 
-class NoteHTTPIntegrationTests(TestCase):
+class NoteHTTPIntegrationTests(AuthenticatedTestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -225,7 +239,9 @@ class NoteHTTPIntegrationTests(TestCase):
         cls.other_category = Category.objects.create(title='HTTP updated category')
 
     def setUp(self):
+        super().setUp()
         self.client = Client(enforce_csrf_checks=True)
+        self.client.force_login(self.user)
         self.payload = {
             'title': 'HTTP created', 'text': 'Created through client',
             'reminder': '2026-10-06T12:30', 'category': self.category.pk,
@@ -270,7 +286,7 @@ class NoteHTTPIntegrationTests(TestCase):
         self.assertEqual(self.client.get(detail_url).status_code, 404)
 
     def test_create_and_update_without_csrf_do_not_write(self):
-        note = Note.objects.create(title='Protected', text='Original', category=self.category)
+        note = Note.objects.create(owner=self.user, title='Protected', text='Original', category=self.category)
         before = list(Note.objects.order_by('pk').values())
         for url in (reverse('notes:create'), reverse('notes:detail', args=[note.pk])):
             with self.subTest(url=url):
@@ -278,7 +294,7 @@ class NoteHTTPIntegrationTests(TestCase):
                 self.assertEqual(list(Note.objects.order_by('pk').values()), before)
 
     def test_invalid_post_displays_errors_and_preserves_all_data(self):
-        note = Note.objects.create(title='Original', text='Unchanged', category=self.category)
+        note = Note.objects.create(owner=self.user, title='Original', text='Unchanged', category=self.category)
         before = list(Note.objects.order_by('pk').values())
         for url in (reverse('notes:create'), reverse('notes:detail', args=[note.pk])):
             with self.subTest(url=url):
@@ -291,7 +307,7 @@ class NoteHTTPIntegrationTests(TestCase):
                 self.assertEqual(list(Note.objects.order_by('pk').values()), before)
 
     def test_unsupported_methods_and_missing_update_do_not_write(self):
-        note = Note.objects.create(title='Original', text='Unchanged', category=self.category)
+        note = Note.objects.create(owner=self.user, title='Original', text='Unchanged', category=self.category)
         before = list(Note.objects.order_by('pk').values())
         token = self.csrf_token(reverse('notes:create'))
         for url in (reverse('notes:create'), reverse('notes:detail', args=[note.pk])):
@@ -304,3 +320,117 @@ class NoteHTTPIntegrationTests(TestCase):
                                     self.payload, HTTP_X_CSRFTOKEN=token)
         self.assertEqual(response.status_code, 404)
         self.assertEqual(list(Note.objects.order_by('pk').values()), before)
+
+
+class NoteAccessTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from django.contrib.auth.models import Group
+        cls.owner = get_user_model().objects.create_user('owner', password='Access-test-987!')
+        cls.member = get_user_model().objects.create_user('member', password='Access-test-987!')
+        cls.outsider = get_user_model().objects.create_user('outsider')
+        cls.group = Group.objects.create(name='Test team')
+        cls.owner.groups.add(cls.group)
+        cls.member.groups.add(cls.group)
+        cls.category = Category.objects.create(title='Access tests')
+        cls.private = Note.objects.create(owner=cls.owner, title='Private', text='Private text', category=cls.category)
+        cls.shared = Note.objects.create(owner=cls.owner, group=cls.group, title='Shared', text='Shared text', category=cls.category)
+
+    def test_anonymous_cannot_read_or_write(self):
+        before = list(Note.objects.order_by('pk').values())
+        for name, args in [('index', []), ('create', []), ('detail', [self.private.pk]), ('delete', [self.private.pk])]:
+            for method in ('get', 'post'):
+                url = reverse('notes:' + name, args=args)
+                response = getattr(self.client, method)(url)
+                self.assertRedirects(response, reverse('login') + '?next=' + url)
+        self.assertEqual(list(Note.objects.order_by('pk').values()), before)
+
+    def test_personal_and_group_lists_are_isolated(self):
+        self.client.force_login(self.member)
+        self.assertEqual(list(self.client.get(reverse('notes:index')).context['notes']), [])
+        self.assertEqual(list(self.client.get(reverse('notes:index'), {'scope': 'group'}).context['notes']), [self.shared])
+        self.client.force_login(self.outsider)
+        self.assertEqual(list(self.client.get(reverse('notes:index'), {'scope': 'group', 'q': 'Shared'}).context['notes']), [])
+        self.client.force_login(self.owner)
+        self.assertEqual(list(self.client.get(reverse('notes:index')).context['notes']), [self.private])
+
+    def test_member_can_only_read_shared_note(self):
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.get(reverse('notes:detail', args=[self.private.pk])).status_code, 404)
+        response = self.client.get(reverse('notes:detail', args=[self.shared.pk]))
+        self.assertContains(response, 'Shared text')
+        self.assertNotContains(response, 'Зберегти зміни')
+        for note in (self.private, self.shared):
+            self.assertEqual(self.client.post(reverse('notes:detail', args=[note.pk]), {'title': 'Hacked'}).status_code, 404)
+            self.assertEqual(self.client.post(reverse('notes:delete', args=[note.pk])).status_code, 404)
+            note.refresh_from_db()
+        self.assertEqual(self.shared.title, 'Shared')
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.get(reverse('notes:detail', args=[self.shared.pk])).status_code, 404)
+        self.member.groups.clear()
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.get(reverse('notes:detail', args=[self.shared.pk])).status_code, 404)
+
+    def test_owner_is_set_by_server_and_group_membership_validated(self):
+        self.client.force_login(self.owner)
+        payload = {'title': 'Created', 'text': 'Text', 'category': self.category.pk,
+                   'owner': self.outsider.pk, 'group': self.group.pk}
+        response = self.client.post(reverse('notes:create'), payload)
+        note = Note.objects.get(title='Created')
+        self.assertRedirects(response, reverse('notes:detail', args=[note.pk]))
+        self.assertEqual(note.owner, self.owner)
+        self.assertEqual(note.group, self.group)
+        response = self.client.post(reverse('notes:detail', args=[note.pk]), {**payload, 'group': ''})
+        self.assertEqual(response.status_code, 302)
+        note.refresh_from_db()
+        self.assertEqual(note.owner, self.owner)
+        self.assertIsNone(note.group)
+        self.client.force_login(self.outsider)
+        count = Note.objects.count()
+        response = self.client.post(reverse('notes:create'), payload)
+        self.assertIn('group', response.context['form'].errors)
+        self.assertEqual(Note.objects.count(), count)
+
+    def test_login_logout_and_safe_redirect(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.get(reverse('login'))
+        self.assertContains(response, 'Вхід до Нотатника')
+        token = client.cookies['csrftoken'].value
+        payload = {'username': 'owner', 'password': 'wrong'}
+        self.assertEqual(client.post(reverse('login'), payload).status_code, 403)
+        response = client.post(reverse('login'), payload, HTTP_X_CSRFTOKEN=token)
+        self.assertContains(response, 'Невірне')
+        payload.update(password='Access-test-987!', next='https://example.com/')
+        self.assertRedirects(client.post(reverse('login'), payload, HTTP_X_CSRFTOKEN=token), reverse('notes:index'))
+        self.assertEqual(client.get(reverse('logout')).status_code, 405)
+        self.assertEqual(client.post(reverse('logout')).status_code, 403)
+        token = client.cookies['csrftoken'].value
+        self.assertRedirects(client.post(reverse('logout'), HTTP_X_CSRFTOKEN=token), reverse('login'))
+        self.assertEqual(client.get(reverse('notes:index')).status_code, 302)
+
+
+class AdminUserTests(TestCase):
+    def test_superuser_can_create_and_delete_user_in_admin(self):
+        admin = get_user_model().objects.create_superuser('test_admin', password='Admin-test-789!')
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(admin)
+        add_url = reverse('admin:auth_user_add')
+        response = client.get(add_url)
+        self.assertEqual(response.status_code, 200)
+        token = client.cookies['csrftoken'].value
+        response = client.post(add_url, {
+            'username': 'admin_created_user', 'password1': 'New-user-789!Strong',
+            'password2': 'New-user-789!Strong', 'usable_password': 'true', '_save': 'Save',
+        }, HTTP_X_CSRFTOKEN=token)
+        self.assertEqual(response.status_code, 302)
+        user = get_user_model().objects.get(username='admin_created_user')
+        self.assertTrue(user.check_password('New-user-789!Strong'))
+        url = reverse('admin:auth_user_delete', args=[user.pk])
+        self.assertEqual(client.get(url).status_code, 200)
+        self.assertEqual(client.post(url, {'post': 'yes'}, HTTP_X_CSRFTOKEN=token).status_code, 302)
+        self.assertFalse(get_user_model().objects.filter(pk=user.pk).exists())
+
+    def test_regular_user_cannot_access_admin(self):
+        user = get_user_model().objects.create_user('regular')
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse('admin:auth_user_add')).status_code, 302)

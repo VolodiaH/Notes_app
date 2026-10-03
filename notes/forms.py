@@ -1,4 +1,6 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import Group
 
 from .models import Category, Note
 
@@ -20,16 +22,31 @@ class BootstrapFormMixin:
             field.widget.attrs['class'] = css_class
 
 
+class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    pass
+
+
 class NoteForm(BootstrapFormMixin, forms.ModelForm):
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        self.fields['group'].queryset = user.groups.all() if user else Group.objects.none()
+        if user is not None and not self.instance.pk:
+            self.instance.owner = user
+
+    def full_clean(self):
+        self.fields['group'].queryset = self.user.groups.all() if self.user else Group.objects.none()
+        super().full_clean()
+
     class Meta:
         model = Note
-        fields = ['title', 'text', 'reminder', 'category']
+        fields = ['title', 'text', 'reminder', 'category', 'group']
         labels = {
             'title': 'Назва', 'text': 'Текст',
-            'reminder': 'Нагадування', 'category': 'Категорія',
+            'reminder': 'Нагадування', 'category': 'Категорія', 'group': 'Група',
         }
         widgets = {'reminder': ReminderInput(), 'text': forms.Textarea(attrs={'rows': 8})}
-        help_texts = {'reminder': 'Необов’язково. Час за Києвом.'}
+        help_texts = {'reminder': 'Необов’язково. Час за Києвом.', 'group': 'Залиште порожнім для персональної нотатки.'}
 
 
 class NoteFilterForm(BootstrapFormMixin, forms.Form):
